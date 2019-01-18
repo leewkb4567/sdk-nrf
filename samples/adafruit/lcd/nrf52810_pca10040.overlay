@@ -1,0 +1,12 @@
+/*
+ * Copyright (c) 2018 - 2019 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+ */
+
+&spi0 {
+	status = "ok";
+	sck-pin = <25>;
+	mosi-pin = <23>;
+	miso-pin = <24>;
+};
