@@ -10,3 +10,9 @@
 	mosi-pin = <23>;
 	miso-pin = <24>;
 };
+
+&i2c1 {
+	status = "ok";
+	sda-pin = <26>;
+	scl-pin = <27>;
+};
