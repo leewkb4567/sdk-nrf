@@ -20,9 +20,9 @@
 
 // Adafruit LCD pin assignments
 #if defined(CONFIG_BOARD_NRF52840_PCA10056)
-#define N_RESET     21
-#define TFT_CS      6
-#define TFT_DC      7
+#define N_RESET     9
+#define TFT_CS      12
+#define TFT_DC      11
 #define TFT_SCK     15
 #define TFT_MOSI    13
 #define TFT_MISO    14
@@ -35,8 +35,8 @@
 #define TFT_MISO    12
 #else
 #define N_RESET     21
-#define TFT_CS      16
-#define TFT_DC      17
+#define TFT_CS      22
+#define TFT_DC      20
 #define TFT_SCK     25
 #define TFT_MOSI    23
 #define TFT_MISO    24
