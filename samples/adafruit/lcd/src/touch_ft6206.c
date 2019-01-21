@@ -11,7 +11,11 @@
 #include "ili9341_lcd.h"
 #include "touch_ft6206.h"
 
+#if defined(CONFIG_BOARD_NRF52810_PCA10040)
+#define I2C_DEV_NAME	DT_I2C_0_NAME
+#else
 #define I2C_DEV_NAME	DT_I2C_1_NAME
+#endif
 
 static struct device *i2c_dev = NULL;
 
