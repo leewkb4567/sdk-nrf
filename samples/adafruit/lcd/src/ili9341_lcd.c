@@ -42,6 +42,10 @@
 #define TFT_MISO    24
 #endif
 
+// LCD dot size
+#define LCD_DOT_W	9
+#define LCD_DOT_H	9
+
 //                   //                   //                   //                   //
 // m_orientation = 0 // m_orientation = 1 // m_orientation = 2 // m_orientation = 3 //
 //                   //                   //                   //                   //
@@ -56,7 +60,6 @@
 //                   //                   //                   //                   //
 
 static uint8_t m_orientation = 1;
-static uint16_t m_background = 0xF81F; // 0x0000; // 0x001F; // 0x07E0; // 0xF800; // 0xFFFF;
 
 static struct device		*gpio_port = NULL;
 static struct device		*spi_port = NULL;
@@ -304,9 +307,23 @@ void ili9341_lcd_off(void)
 	lcd_cs_up();
 }
 
-/**@brief Function to clear the entire LCD.
+static uint16_t ili9341_lcd_get_color(int color8)
+{
+	uint16_t color = 0;
+	
+	if (color8 & LCD_COLOR_RED)
+		color |= 0x001F;
+	if (color8 & LCD_COLOR_GREEN)
+		color |= 0x07E0;
+	if (color8 & LCD_COLOR_BLUE)
+		color |= 0xF800;
+
+	return color;
+}
+
+/**@brief Function to fill the entire LCD.
  */
-void ili9341_lcd_cls(void)
+void ili9341_lcd_fill(int color8)
 {
 	WindowMax();
 	
@@ -314,10 +331,12 @@ void ili9341_lcd_cls(void)
 
 	wr_cmd(0x2C);  // send pixel
 
+	uint16_t color = ili9341_lcd_get_color(color8);
+
 	for (i = 0; i < ILI9341_LCD_WIDTH * 2; i += 2)
 	{
-		m_tx_data[i + 0] = m_background >> 8;
-		m_tx_data[i + 1] = m_background & 0xFF;
+		m_tx_data[i + 0] = color >> 8;
+		m_tx_data[i + 1] = color & 0xFF;
 	}
 
 	for (j = 0; j < ILI9341_LCD_HEIGHT; j++)
@@ -332,4 +351,76 @@ void ili9341_lcd_cls(void)
 	tx_bufs.count = ILI9341_LCD_HEIGHT;
 	spi_write(spi_port, &spi_config, &tx_bufs);
 	lcd_cs_up();
+}
+
+/**@brief Function to put a big dot on LCD.
+ */
+void ili9341_lcd_put_dot(int x, int y, int color8)
+{
+	uint16_t lcd_x, lcd_y;
+	uint16_t w, w_l, w_r;
+	uint16_t h, h_l, h_u;
+
+	if (x >= ILI9341_LCD_WIDTH)
+		x = ILI9341_LCD_WIDTH - 1;
+	else if (x < 0)
+		x = 0;
+	if (y >= ILI9341_LCD_HEIGHT)
+		y = ILI9341_LCD_HEIGHT - 1;
+	else if (y < 0)
+		y = 0;
+
+	lcd_x = x;
+	lcd_y = y;
+
+	w_l = (lcd_x                 >= LCD_DOT_W / 2)      ? (LCD_DOT_W / 2) : (lcd_x);
+	w_r = (lcd_x + LCD_DOT_W / 2 <  ILI9341_LCD_WIDTH)  ? (LCD_DOT_W / 2) : (ILI9341_LCD_WIDTH - 1 - lcd_x);
+	h_u = (lcd_y                 >= LCD_DOT_H / 2)      ? (LCD_DOT_H / 2) : (lcd_y);
+	h_l = (lcd_y + LCD_DOT_H / 2 <  ILI9341_LCD_HEIGHT) ? (LCD_DOT_H / 2) : (ILI9341_LCD_HEIGHT - 1 - lcd_y);
+
+	lcd_x -= w_l;
+	lcd_y -= h_u;
+
+	w = w_l + w_r + 1;
+	h = h_l + h_u + 1;
+
+	// set display window
+	window(lcd_x, lcd_y, w, h);
+
+	uint16_t i, j;
+
+	wr_cmd(0x2C);  // send pixel
+
+	uint16_t color = ili9341_lcd_get_color(color8);
+
+	for (i = 0; i < w * 2; i += 2)
+	{
+		m_tx_data[i + 0] = color >> 8;
+		m_tx_data[i + 1] = color & 0xFF;
+	}
+
+	for (j = 0; j < h; j++)
+	{
+		m_tx_buff[j].buf = m_tx_data;
+		m_tx_buff[j].len = w * 2;
+	}
+
+	struct spi_buf_set tx_bufs;
+
+	tx_bufs.buffers = m_tx_buff;
+	tx_bufs.count = h;
+	spi_write(spi_port, &spi_config, &tx_bufs);
+	lcd_cs_up();
+}
+
+/**@brief Function to get LCD dot size.
+ */
+lcd_dot_size_t ili9341_lcd_get_dot_size(void)
+{
+	lcd_dot_size_t dot_size;
+
+	dot_size.w = LCD_DOT_W;
+	dot_size.h = LCD_DOT_H;
+
+	return dot_size;
 }
