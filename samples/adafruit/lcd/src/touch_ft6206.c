@@ -113,7 +113,7 @@ touch_pos_t touch_ft6206_get(void)
 			if (ft6206_y >= ILI9341_LCD_WIDTH)
 				ft6206_y = ILI9341_LCD_WIDTH - 1;
 
-			touch_pos.x = ft6206_y;
+			touch_pos.x = ILI9341_LCD_WIDTH - 1 - ft6206_y;
 			touch_pos.y = ft6206_x;
 		}
 	}
