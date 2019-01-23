@@ -8,6 +8,7 @@
 #include <device.h>
 #include <gpio.h>
 #include <spi.h>
+#include <string.h>
 #include "Adafruit_ILI9341.h"
 #include "ili9341_lcd.h"
 
