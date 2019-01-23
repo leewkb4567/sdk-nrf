@@ -49,4 +49,8 @@ typedef struct {
  */
 lcd_dot_size_t ili9341_lcd_get_dot_size(void);
 
+/**@brief Function to put a graphics image on LCD.
+ */
+void ili9341_lcd_put_gfx(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t *p_lcd_data);
+
 #endif

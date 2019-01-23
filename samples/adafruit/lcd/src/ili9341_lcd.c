@@ -425,3 +425,37 @@ lcd_dot_size_t ili9341_lcd_get_dot_size(void)
 
 	return dot_size;
 }
+
+/**@brief Function to put a graphics image on LCD.
+ */
+void ili9341_lcd_put_gfx(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t *p_lcd_data)
+{
+	// set display window
+	window(x, y, w, h);
+
+	wr_cmd(0x2C);  // send pixel
+
+	// LittlevGL is little-endian and ILI9341 is big-endian.
+	// Each 16-bit data takes a byte swap.
+
+	struct spi_buf_set tx_bufs;
+	struct spi_buf tx_buff;
+
+	uint32_t len = (uint32_t)w * 2;
+	uint32_t nx, ny, n = 0;
+
+	for (ny = 0; ny < h; ny++) {
+		for (nx = 0; nx < len; nx += 2) {
+			m_tx_data[nx + 0] = *(p_lcd_data + n + nx + 1);
+			m_tx_data[nx + 1] = *(p_lcd_data + n + nx + 0);
+		}
+		n += len;
+		tx_buff.buf = m_tx_data;
+		tx_buff.len = len;
+		tx_bufs.buffers = &tx_buff;
+		tx_bufs.count = 1;
+		spi_write(spi_port, &spi_config, &tx_bufs);
+	}
+
+	lcd_cs_up();
+}
