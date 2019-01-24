@@ -257,10 +257,10 @@ void lv_tutorial_themes(void)
 }
 
 
+#if 0
 static lv_style_t btn3_style;
 
 
-#if 0
 /**
  * Crate some objects an animate them
  */
