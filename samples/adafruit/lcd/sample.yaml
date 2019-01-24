@@ -1,6 +1,6 @@
 sample:
-  description: nRF52 / nRF91 SEEED LCD demo
-  name: seeed_lcd
+  description: nRF52 / nRF91 Adafruit LCD LittlevGL demo
+  name: adafruit_lcd
 tests:
   test_build:
     build_only: true
