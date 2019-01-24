@@ -11,6 +11,10 @@
 #include "touch_ft6206.h"
 
 
+// a semaphore that stores 3 timer ticks
+K_SEM_DEFINE(lvgl_sem, 0, 3);
+
+
 void lcd_touch_pad_test(void);
 
 /* Flush the content of the internal buffer the specific area on the display
@@ -55,6 +59,11 @@ static bool ex_tp_read(lv_indev_data_t *data)
 	return false;
 }
 
+static void lvgl_timer_function(struct k_timer *timer)
+{
+	k_sem_give(&lvgl_sem);
+}
+
 int main(void)
 {
 	ili9341_lcd_init();
@@ -64,6 +73,10 @@ int main(void)
 	touch_ft6206_init();
 
 //	lcd_touch_pad_test();
+
+	struct k_timer lvgl_timer;
+	k_timer_init(&lvgl_timer, lvgl_timer_function, NULL);
+	k_timer_start(&lvgl_timer, K_MSEC(10), K_MSEC(10));
 
 	/***********************
 	 * Initialize LittlevGL
@@ -102,7 +115,9 @@ int main(void)
 
 	while(1) {
 		// call LittlevGL handler every 10ms
-		k_sleep(10);
+		int err = k_sem_take(&lvgl_sem, K_FOREVER);
+		if (err)
+			continue;
 
 		lv_tick_inc(10);
 
