@@ -9,8 +9,6 @@ cmake_minimum_required(VERSION 3.8.2)
 # Check if selected board is supported.
 if(${BOARD} STREQUAL "nrf52_pca10040")
 	set(CONF_FILE nrf52_pca10040.conf)
-elseif(${BOARD} STREQUAL "nrf52810_pca10040")
-	set(CONF_FILE nrf52810_pca10040.conf)
 elseif(${BOARD} STREQUAL "nrf52840_pca10056")
 	set(CONF_FILE nrf52840_pca10056.conf)
 elseif(${BOARD} STREQUAL "nrf9160_pca10090")
