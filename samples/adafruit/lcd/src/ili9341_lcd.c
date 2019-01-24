@@ -426,6 +426,13 @@ lcd_dot_size_t ili9341_lcd_get_dot_size(void)
 	return dot_size;
 }
 
+typedef struct {
+	uint8_t			*p_tx_data;
+	uint32_t		len;
+	struct spi_buf		tx_buff;
+	struct spi_buf_set	tx_bufs;
+} ili9341_tx_buffer_t;
+
 /**@brief Function to put a graphics image on LCD.
  */
 void ili9341_lcd_put_gfx(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t *p_lcd_data)
@@ -438,24 +445,64 @@ void ili9341_lcd_put_gfx(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const u
 	// LittlevGL is little-endian and ILI9341 is big-endian.
 	// Each 16-bit data takes a byte swap.
 
-	struct spi_buf_set tx_bufs;
-	struct spi_buf tx_buff;
+	// Use SPI asynchronous call to utilize CPU during DMA transfer.
+	int err;
+	struct k_poll_signal async_sig = K_POLL_SIGNAL_INITIALIZER(async_sig);
+	struct k_poll_event async_evt =
+				 K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
+				 K_POLL_MODE_NOTIFY_ONLY,
+				 &async_sig);
 
-	uint32_t len = (uint32_t)w * 2;
-	uint32_t nx, ny, n = 0;
+	uint32_t len = (uint32_t)w * 2 * h;
+	uint32_t n;
+	uint32_t i, l;
 
-	for (ny = 0; ny < h; ny++) {
-		for (nx = 0; nx < len; nx += 2) {
-			m_tx_data[nx + 0] = *(p_lcd_data + n + nx + 1);
-			m_tx_data[nx + 1] = *(p_lcd_data + n + nx + 0);
+	// Divide SPI TX data buffer into 2 parts.
+	// Start DMA transfer at a part and work on another part.
+
+	ili9341_tx_buffer_t tx_buffer[2], *p_tx_buffer;
+
+	tx_buffer[0].len = ILI9341_LCD_WIDTH / 2 * 2;
+	tx_buffer[1].len = sizeof(m_tx_data) - tx_buffer[0].len;
+	tx_buffer[0].p_tx_data = m_tx_data;
+	tx_buffer[1].p_tx_data = m_tx_data + tx_buffer[0].len;
+
+	uint32_t tx_buff_i = 0;
+
+	for (n = 0; n < len; n += l) {
+		// get the data length to transfer
+		l = len - n;
+		p_tx_buffer = tx_buffer + tx_buff_i;
+		if (l > p_tx_buffer->len)
+			l = p_tx_buffer->len;
+
+		// copy data with swap
+		for (i = 0; i < l; i += 2) {
+			*(p_tx_buffer->p_tx_data + i + 0) = *(p_lcd_data + n + i + 1);
+			*(p_tx_buffer->p_tx_data + i + 1) = *(p_lcd_data + n + i + 0);
 		}
-		n += len;
-		tx_buff.buf = m_tx_data;
-		tx_buff.len = len;
-		tx_bufs.buffers = &tx_buff;
-		tx_bufs.count = 1;
-		spi_write(spi_port, &spi_config, &tx_bufs);
+
+		p_tx_buffer->tx_buff.buf = p_tx_buffer->p_tx_data;
+		p_tx_buffer->tx_buff.len = l;
+		p_tx_buffer->tx_bufs.buffers = &p_tx_buffer->tx_buff;
+		p_tx_buffer->tx_bufs.count = 1;
+
+		if (n > 0) {
+			// hold until previous SPI transfer is done before starting another.
+			err = k_poll(&async_evt, 1, K_FOREVER);
+			if (err) {
+				printk("SPI write error #%d!\n", err);
+				break;
+			}
+			k_poll_signal_reset(&async_sig);
+		}
+		spi_write_async(spi_port, &spi_config, &p_tx_buffer->tx_bufs, &async_sig);
+
+		// swap TX buffer structure
+		tx_buff_i ^= 0x1;
 	}
 
+	// wait until SPI transfer is done
+	k_poll(&async_evt, 1, K_FOREVER);
 	lcd_cs_up();
 }
