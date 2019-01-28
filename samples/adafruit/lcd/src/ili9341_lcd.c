@@ -445,6 +445,7 @@ void ili9341_lcd_put_gfx(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const u
 	// LittlevGL is little-endian and ILI9341 is big-endian.
 	// Each 16-bit data takes a byte swap.
 
+#if defined(CONFIG_SPI_ASYNC) && CONFIG_SPI_ASYNC > 0
 	// Use SPI asynchronous call to utilize CPU during DMA transfer.
 	int err;
 	struct k_poll_signal async_sig = K_POLL_SIGNAL_INITIALIZER(async_sig);
@@ -504,5 +505,34 @@ void ili9341_lcd_put_gfx(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const u
 
 	// wait until SPI transfer is done
 	k_poll(&async_evt, 1, K_FOREVER);
+#else
+	// No SPI asynchronous call. A little slower.
+	struct spi_buf		tx_buff;
+	struct spi_buf_set	tx_bufs;
+
+	uint32_t len = (uint32_t)w * 2 * h;
+	uint32_t n;
+	uint32_t i, l;
+
+	for (n = 0; n < len; n += l) {
+		// get the data length to transfer
+		l = len - n;
+		if (l > sizeof(m_tx_data))
+			l = sizeof(m_tx_data);
+
+		// copy data with swap
+		for (i = 0; i < l; i += 2) {
+			m_tx_data[i + 0] = *(p_lcd_data + n + i + 1);
+			m_tx_data[i + 1] = *(p_lcd_data + n + i + 0);
+		}
+
+		tx_buff.buf = m_tx_data;
+		tx_buff.len = l;
+		tx_bufs.buffers = &tx_buff;
+		tx_bufs.count = 1;
+		spi_write(spi_port, &spi_config, &tx_bufs);
+	}
+#endif
+
 	lcd_cs_up();
 }
