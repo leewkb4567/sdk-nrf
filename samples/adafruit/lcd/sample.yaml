@@ -5,5 +5,5 @@ tests:
   test_build:
     build_only: true
     build_on_all: true
-    platform_whitelist: nrf52_pca10040 nrf52840_pca10056 nrf9160_pca10090
+    platform_whitelist: nrf52840_pca10056 nrf9160_pca10090
     tags: ci_build
