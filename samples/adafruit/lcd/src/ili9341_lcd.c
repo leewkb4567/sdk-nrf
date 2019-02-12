@@ -65,44 +65,44 @@ static void wait_ms(uint16_t t)
 
 /**@brief Function to pull down LCD \RESET pin.
  */
-static void lcd_nreset_down(void)
+static int lcd_nreset_down(void)
 {
-	gpio_pin_write(gpio_port, N_RESET, 0);
+	return gpio_pin_write(gpio_port, N_RESET, 0);
 }
 
 /**@brief Function to pull up LCD \RESET pin.
  */
-static void lcd_nreset_up(void)
+static int lcd_nreset_up(void)
 {
-	gpio_pin_write(gpio_port, N_RESET, 1);
+	return gpio_pin_write(gpio_port, N_RESET, 1);
 }
 
 /**@brief Function to pull down LCD CS pin.
  */
-static void lcd_cs_down(void)
+static int lcd_cs_down(void)
 {
-	gpio_pin_write(gpio_port, TFT_CS, 0);
+	return gpio_pin_write(gpio_port, TFT_CS, 0);
 }
 
 /**@brief Function to pull up LCD CS pin.
  */
-static void lcd_cs_up(void)
+static int lcd_cs_up(void)
 {
-	gpio_pin_write(gpio_port, TFT_CS, 1);
+	return gpio_pin_write(gpio_port, TFT_CS, 1);
 }
 
 /**@brief Function to pull down LCD D/C pin.
  */
-static void lcd_dc_down(void)
+static int lcd_dc_down(void)
 {
-	gpio_pin_write(gpio_port, TFT_DC, 0);
+	return gpio_pin_write(gpio_port, TFT_DC, 0);
 }
 
 /**@brief Function to pull up LCD D/C pin.
  */
-static void lcd_dc_up(void)
+static int lcd_dc_up(void)
 {
-	gpio_pin_write(gpio_port, TFT_DC, 1);
+	return gpio_pin_write(gpio_port, TFT_DC, 1);
 }
 
 /**@brief Function to send a LCD command byte by SPI.
@@ -179,9 +179,9 @@ static void gpio_init(void)
 	err += gpio_pin_configure(gpio_port, TFT_CS, GPIO_DIR_OUT);
 	err += gpio_pin_configure(gpio_port, TFT_DC, GPIO_DIR_OUT);
 	if (!err) {
-		err = gpio_port_write(gpio_port, 1 << N_RESET |
-						1 << TFT_CS |
-						1 << TFT_DC);
+		err += lcd_nreset_up();
+		err += lcd_cs_up();
+		err += lcd_dc_up();
 	}
 
 	if (err) {
