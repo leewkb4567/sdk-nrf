@@ -23,6 +23,10 @@
 #ifndef ADAFRUIT_FT6206_LIBRARY
 #define ADAFRUIT_FT6206_LIBRARY
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define FT62XX_ADDR           0x38
 #define FT62XX_G_FT5201ID     0xA8
 #define FT62XX_REG_NUMTOUCHES 0x02
@@ -47,5 +51,9 @@
 
 // calibrated for Adafruit 2.8" ctp screen
 #define FT62XX_DEFAULT_THRESHOLD 128
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //ADAFRUIT_FT6206_LIBRARY

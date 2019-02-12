@@ -42,6 +42,10 @@
 #ifndef _ADAFRUIT_ILI9341H_
 #define _ADAFRUIT_ILI9341H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define ILI9341_TFTWIDTH   240      ///< ILI9341 max TFT width
 #define ILI9341_TFTHEIGHT  320      ///< ILI9341 max TFT height
 
@@ -122,5 +126,9 @@
 #define ILI9341_PINK        0xFC18  ///< 255, 130, 198
 
 extern const uint8_t Adafruit_ILI9341_initcmd[];
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _ADAFRUIT_ILI9341H_

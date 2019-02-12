@@ -7,6 +7,10 @@
 #ifndef LV_TUTORIALS_H__
 #define LV_TUTORIALS_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Create a simple 'Hello world!' label
  */
@@ -31,5 +35,9 @@ void lv_tutorial_themes(void);
  * Crate some objects an animate them
  */
 void lv_tutorial_responsive(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
