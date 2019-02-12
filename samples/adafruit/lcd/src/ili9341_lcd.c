@@ -43,31 +43,11 @@
 #define TFT_MISO    24
 #endif
 
-// LCD dot size
-#define LCD_DOT_W	9
-#define LCD_DOT_H	9
-
-//                   //                   //                   //                   //
-// m_orientation = 0 // m_orientation = 1 // m_orientation = 2 // m_orientation = 3 //
-//                   //                   //                   //                   //
-// 0---> X ---> 240  // 320               //               320 // 240 <--- Y <---0  //
-// | +----+          // ^ +----+          //         +----+ ^  //         +----+ |  //
-// | |    |          // | |    |          //         |    | |  //         |    | |  //
-// v |    |          // X |    |          //         |    | Y  //         |    | v  //
-// Y |    |          // ^ |    |          //         |    | ^  //         |    | X  //
-// | |    |          // | |    |          //         |    | |  //         |    | |  //
-// v +----+          // | +----+          //         +----+ |  //         +----+ v  //
-// 320               // 0---> Y ---> 240  // 240 <--- X <---0  //               320 //
-//                   //                   //                   //                   //
-
-static uint8_t m_orientation = 1;
-
 static struct device		*gpio_port = NULL;
 static struct device		*spi_port = NULL;
 static struct spi_config	spi_config;
 
 static uint8_t m_tx_data[ILI9341_LCD_WIDTH * 2];
-struct spi_buf m_tx_buff[ILI9341_LCD_HEIGHT];
 
 /**@brief Function to wait microseconds.
  */
@@ -161,37 +141,9 @@ static void wr_dat(uint8_t *data, uint8_t len)
 	spi_write(spi_port, &spi_config, &tx_bufs);
 }
 
-/**@brief Function to get LCD width.
- */
-static uint16_t width()
-{
-	if (m_orientation == 0 || m_orientation == 2)
-	{
-		return ILI9341_LCD_HEIGHT;
-	}
-	else
-	{
-		return ILI9341_LCD_WIDTH;
-	}
-}
-
-/**@brief Function to get LCD height.
- */
-static uint16_t height()
-{
-	if (m_orientation == 0 || m_orientation == 2)
-	{
-		return ILI9341_LCD_WIDTH;
-	}
-	else
-	{
-		return ILI9341_LCD_HEIGHT;
-	}
-}
-
 /**@brief Function to set LCD driver window.
  */
-static void window (uint16_t x, uint16_t y, uint16_t w, uint16_t h)
+static void window(uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
 	uint8_t data[4];
 
@@ -210,13 +162,6 @@ static void window (uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 	data[3] = y+h-1;
 	wr_dat(data, 4);
 	lcd_cs_up();
-}
-
-/**@brief Function to set LCD driver window to entire area.
- */
-static void WindowMax(void)
-{
-	window(0, 0, width(), height());
 }
 
 /**@brief Function to initiate LCD GPIO pins.
@@ -306,124 +251,6 @@ void ili9341_lcd_off(void)
 {
 	wr_cmd(0x28);               // display off
 	lcd_cs_up();
-}
-
-static uint16_t ili9341_lcd_get_color(int color8)
-{
-	uint16_t color = 0;
-	
-	if (color8 & LCD_COLOR_RED)
-		color |= 0x001F;
-	if (color8 & LCD_COLOR_GREEN)
-		color |= 0x07E0;
-	if (color8 & LCD_COLOR_BLUE)
-		color |= 0xF800;
-
-	return color;
-}
-
-/**@brief Function to fill the entire LCD.
- */
-void ili9341_lcd_fill(int color8)
-{
-	WindowMax();
-	
-	uint16_t i, j;
-
-	wr_cmd(0x2C);  // send pixel
-
-	uint16_t color = ili9341_lcd_get_color(color8);
-
-	for (i = 0; i < ILI9341_LCD_WIDTH * 2; i += 2)
-	{
-		m_tx_data[i + 0] = color >> 8;
-		m_tx_data[i + 1] = color & 0xFF;
-	}
-
-	for (j = 0; j < ILI9341_LCD_HEIGHT; j++)
-	{
-		m_tx_buff[j].buf = m_tx_data;
-		m_tx_buff[j].len = ILI9341_LCD_WIDTH * 2;
-	}
-
-	struct spi_buf_set tx_bufs;
-
-	tx_bufs.buffers = m_tx_buff;
-	tx_bufs.count = ILI9341_LCD_HEIGHT;
-	spi_write(spi_port, &spi_config, &tx_bufs);
-	lcd_cs_up();
-}
-
-/**@brief Function to put a big dot on LCD.
- */
-void ili9341_lcd_put_dot(int x, int y, int color8)
-{
-	uint16_t lcd_x, lcd_y;
-	uint16_t w, w_l, w_r;
-	uint16_t h, h_l, h_u;
-
-	if (x >= ILI9341_LCD_WIDTH)
-		x = ILI9341_LCD_WIDTH - 1;
-	else if (x < 0)
-		x = 0;
-	if (y >= ILI9341_LCD_HEIGHT)
-		y = ILI9341_LCD_HEIGHT - 1;
-	else if (y < 0)
-		y = 0;
-
-	lcd_x = x;
-	lcd_y = y;
-
-	w_l = (lcd_x                 >= LCD_DOT_W / 2)      ? (LCD_DOT_W / 2) : (lcd_x);
-	w_r = (lcd_x + LCD_DOT_W / 2 <  ILI9341_LCD_WIDTH)  ? (LCD_DOT_W / 2) : (ILI9341_LCD_WIDTH - 1 - lcd_x);
-	h_u = (lcd_y                 >= LCD_DOT_H / 2)      ? (LCD_DOT_H / 2) : (lcd_y);
-	h_l = (lcd_y + LCD_DOT_H / 2 <  ILI9341_LCD_HEIGHT) ? (LCD_DOT_H / 2) : (ILI9341_LCD_HEIGHT - 1 - lcd_y);
-
-	lcd_x -= w_l;
-	lcd_y -= h_u;
-
-	w = w_l + w_r + 1;
-	h = h_l + h_u + 1;
-
-	// set display window
-	window(lcd_x, lcd_y, w, h);
-
-	uint16_t i, j;
-
-	wr_cmd(0x2C);  // send pixel
-
-	uint16_t color = ili9341_lcd_get_color(color8);
-
-	for (i = 0; i < w * 2; i += 2)
-	{
-		m_tx_data[i + 0] = color >> 8;
-		m_tx_data[i + 1] = color & 0xFF;
-	}
-
-	for (j = 0; j < h; j++)
-	{
-		m_tx_buff[j].buf = m_tx_data;
-		m_tx_buff[j].len = w * 2;
-	}
-
-	struct spi_buf_set tx_bufs;
-
-	tx_bufs.buffers = m_tx_buff;
-	tx_bufs.count = h;
-	spi_write(spi_port, &spi_config, &tx_bufs);
-	lcd_cs_up();
-}
-
-/**@brief Function to get LCD dot size.
- */
-lcd_dot_size_t ili9341_lcd_get_dot_size(void)
-{
-	lcd_dot_size_t dot_size;
-
-	dot_size.w = LCD_DOT_W;
-	dot_size.h = LCD_DOT_H;
-
-	return dot_size;
 }
 
 typedef struct {

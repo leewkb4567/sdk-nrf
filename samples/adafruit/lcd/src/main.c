@@ -15,8 +15,6 @@
 K_SEM_DEFINE(lvgl_sem, 0, 3);
 
 
-void lcd_touch_pad_test(void);
-
 /* Flush the content of the internal buffer the specific area on the display
  * You can use DMA or any hardware acceleration to do this operation in the background but
  * 'lv_flush_ready()' has to be called when finished
@@ -72,8 +70,6 @@ int main(void)
 
 	touch_ft6206_init();
 
-//	lcd_touch_pad_test();
-
 	struct k_timer lvgl_timer;
 	k_timer_init(&lvgl_timer, lvgl_timer_function, NULL);
 	k_timer_start(&lvgl_timer, K_MSEC(10), K_MSEC(10));
@@ -122,33 +118,5 @@ int main(void)
 		lv_tick_inc(10);
 
 		lv_task_handler();
-	}
-}
-
-void lcd_touch_pad_test(void)
-{
-	int pressed = 0;
-	touch_pos_t touch_pos;
-
-	// clear screen
-	ili9341_lcd_fill(LCD_COLOR_WHITE);
-
-	while(1) {
-		touch_pos = touch_ft6206_get();
-
-		// is touch panel pressed?
-		if (touch_pos.z) {
-			pressed = 1;
-			// yes, draw a dot
-			ili9341_lcd_put_dot(touch_pos.x, touch_pos.y, LCD_COLOR_BLACK);
-		} else {
-			if (pressed) {
-				pressed = 0;
-				// no, clear screen
-				ili9341_lcd_fill(LCD_COLOR_WHITE);
-			}
-		}
-		
-		k_sleep(50);
 	}
 }
