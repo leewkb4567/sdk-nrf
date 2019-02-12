@@ -104,9 +104,9 @@ int main(void)
 	lv_indev_drv_register(&indev_drv);              /*Finally register the driver*/
 
 //	lv_tutorial_hello_world();
-	lv_tutorial_objects();
-//	lv_tutorial_styles(); // not working...
-//	lv_tutorial_themes(); // not working...
+//	lv_tutorial_objects();
+//	lv_tutorial_styles();
+	lv_tutorial_themes();
 //	lv_tutorial_responsive();
 
 	while(1) {
