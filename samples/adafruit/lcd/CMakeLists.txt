@@ -20,5 +20,3 @@ project(adafruit_lcd)
 
 FILE(GLOB app_sources src/*.c)
 target_sources(app  PRIVATE ${app_sources})
-
-add_subdirectory(src/lvgl)
