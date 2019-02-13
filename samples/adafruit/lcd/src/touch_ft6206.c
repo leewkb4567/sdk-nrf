@@ -17,7 +17,7 @@
 #define I2C_DEV_NAME	DT_I2C_1_NAME
 #endif
 
-static struct device *i2c_dev = NULL;
+static struct device *i2c_dev;
 
 void touch_ft6206_init(void)
 {
@@ -75,17 +75,17 @@ void touch_ft6206_init(void)
 		printk("MODE = %02X\n", FT62XX_REG_WORKMODE);
 	}
 
-	err = i2c_reg_write_byte(i2c_dev, FT62XX_ADDR, FT62XX_REG_THRESHHOLD, FT62XX_DEFAULT_THRESHOLD);
+	err = i2c_reg_write_byte(i2c_dev, FT62XX_ADDR, FT62XX_REG_THRESHOLD, FT62XX_DEFAULT_THRESHOLD);
 	if (err) {
 		printk("i2c_reg_write_byte() = %d\n", err);
 	} else {
-		printk("THRESHHOLD = %02X\n", FT62XX_DEFAULT_THRESHOLD);
+		printk("THRESHOLD = %02X\n", FT62XX_DEFAULT_THRESHOLD);
 	}
 }
 
-touch_pos_t touch_ft6206_get(void)
+struct ft6206_pos touch_ft6206_get(void)
 {
-	touch_pos_t touch_pos;
+	struct ft6206_pos touch_pos;
 	int err;
 
 	u8_t data[7];
@@ -94,15 +94,16 @@ touch_pos_t touch_ft6206_get(void)
 	if (err) {
 		printk("i2c_burst_read() = %d\n", err);
 
-		// I2C error...
+		/* I2C error... */
 		touch_pos.x = touch_pos.y = touch_pos.z = 0;
 	} else {
 		u8_t num_touch = data[0] & 0xF;
+
 		if (!num_touch || num_touch > 2) {
-			// panel not pressed
+			/* panel not pressed */
 			touch_pos.x = touch_pos.y = touch_pos.z = 0;
 		} else {
-			// get touch position
+			/* get touch position */
 			touch_pos.z = 1;
 
 			u16_t ft6206_x = (((u16_t)data[1] & 0xF) << 8) + data[2];

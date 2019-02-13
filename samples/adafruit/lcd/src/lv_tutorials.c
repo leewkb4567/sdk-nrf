@@ -14,7 +14,7 @@
 void lv_tutorial_hello_world(void)
 {
 	/*Create a Label on the currently active screen*/
-	lv_obj_t * label1 =  lv_label_create(lv_scr_act(), NULL);
+	lv_obj_t *label1 =  lv_label_create(lv_scr_act(), NULL);
 
 	/*Modify the Label's text*/
 	lv_label_set_text(label1, "Hello world!");
@@ -30,7 +30,7 @@ void lv_tutorial_hello_world(void)
  * @param btn pointer to the released button
  * @return LV_RES_OK because the object is not deleted in this function
  */
-static  lv_res_t btn_rel_action(lv_obj_t * btn)
+static  lv_res_t btn_rel_action(lv_obj_t *btn)
 {
 	/*Increase the button width*/
 	lv_coord_t width = lv_obj_get_width(btn);
@@ -44,9 +44,9 @@ static  lv_res_t btn_rel_action(lv_obj_t * btn)
  * @param ddlist pointer to the drop down list
  * @return LV_RES_OK because the object is not deleted in this function
  */
-static  lv_res_t ddlist_action(lv_obj_t * ddlist)
+static  lv_res_t ddlist_action(lv_obj_t *ddlist)
 {
-	uint16_t opt = lv_ddlist_get_selected(ddlist);      /*Get the id of selected option*/
+	u16_t opt = lv_ddlist_get_selected(ddlist);      /*Get the id of selected option*/
 
 	lv_obj_t *slider = lv_obj_get_free_ptr(ddlist);       /*Get the saved slider*/
 	lv_slider_set_value(slider, (opt * 100) / 4);       /*Modify the slider value according to the selection*/
@@ -108,7 +108,7 @@ void lv_tutorial_objects(void)
 	/***********************
 	 * ADD A DROP DOWN LIST
 	 ************************/
-	lv_obj_t * ddlist = lv_ddlist_create(lv_scr_act(), NULL);            /*Create a drop down list*/
+	lv_obj_t *ddlist = lv_ddlist_create(lv_scr_act(), NULL);             /*Create a drop down list*/
 	lv_obj_align(ddlist, slider, LV_ALIGN_OUT_RIGHT_TOP, 50, 0);         /*Align next to the slider*/
 	lv_obj_set_free_ptr(ddlist, slider);                                   /*Save the pointer of the slider in the ddlist (used in 'ddlist_action()')*/
 	lv_obj_set_top(ddlist, true);                                        /*Enable to be on the top when clicked*/
@@ -118,20 +118,20 @@ void lv_tutorial_objects(void)
 	/****************
 	 * CREATE A CHART
 	 ****************/
-	lv_obj_t * chart = lv_chart_create(lv_scr_act(), NULL);                         /*Create the chart*/
+	lv_obj_t *chart = lv_chart_create(lv_scr_act(), NULL);                          /*Create the chart*/
 	lv_obj_set_size(chart, lv_obj_get_width(scr) / 2, lv_obj_get_width(scr) / 4);   /*Set the size*/
 	lv_obj_align(chart, slider, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 50);                   /*Align below the slider*/
 	lv_chart_set_series_width(chart, 3);                                            /*Set the line width*/
 
 	/*Add a RED data series and set some points*/
-	lv_chart_series_t * dl1 = lv_chart_add_series(chart, LV_COLOR_RED);
+	lv_chart_series_t *dl1 = lv_chart_add_series(chart, LV_COLOR_RED);
 	lv_chart_set_next(chart, dl1, 10);
 	lv_chart_set_next(chart, dl1, 25);
 	lv_chart_set_next(chart, dl1, 45);
 	lv_chart_set_next(chart, dl1, 80);
 
 	/*Add a BLUE data series and set some points*/
-	lv_chart_series_t * dl2 = lv_chart_add_series(chart, LV_COLOR_MAKE(0x40, 0x70, 0xC0));
+	lv_chart_series_t *dl2 = lv_chart_add_series(chart, LV_COLOR_MAKE(0x40, 0x70, 0xC0));
 	lv_chart_set_next(chart, dl2, 10);
 	lv_chart_set_next(chart, dl2, 25);
 	lv_chart_set_next(chart, dl2, 45);
@@ -166,7 +166,7 @@ void lv_tutorial_styles(void)
 	 * BASE OBJECT WITH 'PRETTY COLOR' STYLE
 	 ****************************************/
 	/*Create a simple objects*/
-	lv_obj_t * obj2;
+	lv_obj_t *obj2;
 	obj2 = lv_obj_create(lv_scr_act(), NULL);
 	lv_obj_align(obj2, obj1, LV_ALIGN_OUT_RIGHT_MID, 20, 0);    /*Align next to the previous object*/
 	lv_obj_set_style(obj2, &lv_style_pretty);                   /*Set built in style*/
@@ -193,7 +193,7 @@ void lv_tutorial_styles(void)
 	style_new.text.letter_space = 10;                    /*10 px letter space*/
 
 	/*Create a base object and apply the new style*/
-	lv_obj_t * obj3;
+	lv_obj_t *obj3;
 	obj3 = lv_obj_create(lv_scr_act(), NULL);
 	lv_obj_align(obj3, obj2, LV_ALIGN_OUT_RIGHT_MID, 20, 0);
 	lv_obj_set_style(obj3, &style_new);
@@ -272,8 +272,8 @@ void lv_tutorial_animations(void)
 	/*Create a button the demonstrate built-in animations*/
 	lv_obj_t *btn1;
 	btn1 = lv_btn_create(lv_scr_act(), NULL);
-	lv_obj_set_pos(btn1, 10 , 10 );     /*Set a position. It will be the animation's destination*/
-	lv_obj_set_size(btn1, 80 , 50 );
+	lv_obj_set_pos(btn1, 10, 10);     /*Set a position. It will be the animation's destination*/
+	lv_obj_set_size(btn1, 80, 50);
 
 	label = lv_label_create(btn1, NULL);
 	lv_label_set_text(label, "Float");
@@ -285,8 +285,8 @@ void lv_tutorial_animations(void)
 	/*Create a button to demonstrate user defined animations*/
 	lv_obj_t *btn2;
 	btn2 = lv_btn_create(lv_scr_act(), NULL);
-	lv_obj_set_pos(btn2, 10 , 80 );     /*Set a position. It will be the animation's destination*/
-	lv_obj_set_size(btn2, 80 , 50 );
+	lv_obj_set_pos(btn2, 10, 80);     /*Set a position. It will be the animation's destination*/
+	lv_obj_set_size(btn2, 80, 50);
 
 	label = lv_label_create(btn2, NULL);
 	lv_label_set_text(label, "Move");
@@ -295,7 +295,7 @@ void lv_tutorial_animations(void)
 	lv_anim_t a;
 	a.var = btn2;
 	a.start = lv_obj_get_x(btn2);
-	a.end = a.start + (100 );
+	a.end = a.start + (100);
 	a.fp = (lv_anim_fp_t)lv_obj_set_x;
 	a.path = lv_anim_path_linear;
 	a.end_cb = NULL;
@@ -310,8 +310,8 @@ void lv_tutorial_animations(void)
 	/*Create a button to demonstrate the style animations*/
 	lv_obj_t *btn3;
 	btn3 = lv_btn_create(lv_scr_act(), NULL);
-	lv_obj_set_pos(btn3, 10 , 150 );     /*Set a position. It will be the animation's destination*/
-	lv_obj_set_size(btn3, 80 , 50 );
+	lv_obj_set_pos(btn3, 10, 150);     /*Set a position. It will be the animation's destination*/
+	lv_obj_set_size(btn3, 80, 50);
 
 	label = lv_label_create(btn3, NULL);
 	lv_label_set_text(label, "Style");

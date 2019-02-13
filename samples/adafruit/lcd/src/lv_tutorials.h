@@ -40,4 +40,4 @@ void lv_tutorial_responsive(void);
 }
 #endif
 
-#endif
+#endif /* LV_TUTORIALS_H__ */

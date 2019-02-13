@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-// ILI9341 LCD size is QVGA.
+/* ILI9341 LCD size is QVGA. */
 #define ILI9341_LCD_WIDTH     320
 #define ILI9341_LCD_HEIGHT    240
 
@@ -29,10 +29,10 @@ void ili9341_lcd_off(void);
 
 /**@brief Function to put a graphics image on LCD.
  */
-void ili9341_lcd_put_gfx(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t *p_lcd_data);
+void ili9341_lcd_put_gfx(u16_t x, u16_t y, u16_t w, u16_t h, const u8_t *p_lcd_data);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* ILI9341_LCD_H__ */

@@ -11,7 +11,7 @@
 #include "touch_ft6206.h"
 
 
-// a semaphore that stores 3 timer ticks
+/* a semaphore that stores 3 timer ticks */
 K_SEM_DEFINE(lvgl_sem, 0, 3);
 
 
@@ -19,10 +19,9 @@ K_SEM_DEFINE(lvgl_sem, 0, 3);
  * You can use DMA or any hardware acceleration to do this operation in the background but
  * 'lv_flush_ready()' has to be called when finished
  * This function is required only when LV_VDB_SIZE != 0 in lv_conf.h*/
-static void ex_disp_flush(int32_t x1, int32_t y1, int32_t x2, int32_t y2, const lv_color_t * color_p)
+static void ex_disp_flush(s32_t x1, s32_t y1, s32_t x2, s32_t y2, const lv_color_t *color_p)
 {
-	/*The most simple case (but also the slowest) to put all pixels to the screen one-by-one*/
-
+	/* Send LCD window data to ILI9341 */
 	ili9341_lcd_put_gfx(x1, y1, x2 - x1 + 1, y2 - y1 + 1, (const uint8_t *) color_p);
 
 	/* IMPORTANT!!!
@@ -36,9 +35,9 @@ static bool ex_tp_read(lv_indev_data_t *data)
 {
 	/* Read your touchpad */
 
-	touch_pos_t buffer = touch_ft6206_get();
-	static int prev_x = 0;
-	static int prev_y = 0;
+	struct ft6206_pos buffer = touch_ft6206_get();
+	static int prev_x;
+	static int prev_y;
 
 	data->state = (buffer.z) ? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL;
 
@@ -46,9 +45,9 @@ static bool ex_tp_read(lv_indev_data_t *data)
 		data->point.x = prev_x = buffer.x;
 		data->point.y = prev_y = buffer.y;
 	} else {
-		// IMPORTANT NOTE:
-		// Touchpad drivers must return the last X/Y coordinates
-		// even when the state is LV_INDEV_STATE_REL.
+		/* IMPORTANT NOTE:
+		 * Touchpad drivers must return the last X/Y coordinates
+		 * even when the state is LV_INDEV_STATE_REL.            */
 		data->point.x = prev_x;
 		data->point.y = prev_y;
 	}
@@ -71,6 +70,7 @@ int main(void)
 	touch_ft6206_init();
 
 	struct k_timer lvgl_timer;
+
 	k_timer_init(&lvgl_timer, lvgl_timer_function, NULL);
 	k_timer_start(&lvgl_timer, K_MSEC(10), K_MSEC(10));
 
@@ -83,6 +83,7 @@ int main(void)
 	 * Display interface
 	 ***********************/
 	lv_disp_drv_t disp_drv;                         /*Descriptor of a display driver*/
+
 	lv_disp_drv_init(&disp_drv);                    /*Basic initialization*/
 
 	/*Set up the functions to access to your display*/
@@ -98,20 +99,22 @@ int main(void)
 	 *************************/
 	/*Add a touchpad in the example*/
 	lv_indev_drv_t indev_drv;                       /*Descriptor of an input device driver*/
+
 	lv_indev_drv_init(&indev_drv);                  /*Basic initialization*/
 	indev_drv.type = LV_INDEV_TYPE_POINTER;         /*The touchpad is pointer type device*/
 	indev_drv.read = ex_tp_read;                    /*Library ready your touchpad via this function*/
 	lv_indev_drv_register(&indev_drv);              /*Finally register the driver*/
 
-//	lv_tutorial_hello_world();
-//	lv_tutorial_objects();
-//	lv_tutorial_styles();
+/*	lv_tutorial_hello_world(); */
+/*	lv_tutorial_objects(); */
+/*	lv_tutorial_styles(); */
 	lv_tutorial_themes();
-//	lv_tutorial_responsive();
+/*	lv_tutorial_responsive(); */
 
-	while(1) {
-		// call LittlevGL handler every 10ms
+	while (1) {
+		/* call LittlevGL handler every 10ms */
 		int err = k_sem_take(&lvgl_sem, K_FOREVER);
+
 		if (err)
 			continue;
 

@@ -11,11 +11,11 @@
 extern "C" {
 #endif
 
-typedef struct {
+struct ft6206_pos {
 	int x;
 	int y;
 	int z;
-} touch_pos_t;
+};
 
 /**@brief Function to initiate touch panel.
  */
@@ -23,10 +23,10 @@ void touch_ft6206_init(void);
 
 /**@brief Function to get touch panel position.
  */
-touch_pos_t touch_ft6206_get(void);
+struct ft6206_pos touch_ft6206_get(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* TOUCH_FT6206_H__ */

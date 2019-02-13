@@ -19,7 +19,7 @@
 #endif
 #define SPI_PORT				DT_SPI_0_NAME
 
-// Adafruit LCD pin assignments
+/* Adafruit LCD pin assignments */
 #if defined(CONFIG_BOARD_NRF52840_PCA10056)
 #define N_RESET     9
 #define TFT_CS      12
@@ -43,22 +43,22 @@
 #define TFT_MISO    24
 #endif
 
-static struct device		*gpio_port = NULL;
-static struct device		*spi_port = NULL;
+static struct device		*gpio_port;
+static struct device		*spi_port;
 static struct spi_config	spi_config;
 
-static uint8_t m_tx_data[ILI9341_LCD_WIDTH * 2];
+static u8_t m_tx_data[ILI9341_LCD_WIDTH * 2];
 
 /**@brief Function to wait microseconds.
  */
-static void wait_us(uint16_t t)
+static void wait_us(u16_t t)
 {
 	k_busy_wait(t);
 }
 
 /**@brief Function to wait milliseconds.
  */
-static void wait_ms(uint16_t t)
+static void wait_ms(u16_t t)
 {
 	k_sleep(t);
 }
@@ -107,7 +107,7 @@ static int lcd_dc_up(void)
 
 /**@brief Function to send a LCD command byte by SPI.
  */
-static void wr_cmd(uint8_t cmd)
+static void wr_cmd(u8_t cmd)
 {
 	lcd_dc_down();
 	lcd_cs_down();
@@ -115,7 +115,7 @@ static void wr_cmd(uint8_t cmd)
 
 	struct spi_buf_set tx_bufs;
 	struct spi_buf tx_buff;
-	uint8_t buff = cmd;
+	u8_t buff = cmd;
 
 	tx_buff.buf = &buff;
 	tx_buff.len = 1;
@@ -129,7 +129,7 @@ static void wr_cmd(uint8_t cmd)
 
 /**@brief Function to send data to LCD by SPI.
  */
-static void wr_dat(uint8_t *data, uint8_t len)
+static void wr_dat(u8_t *data, u8_t len)
 {
 	struct spi_buf_set tx_bufs;
 	struct spi_buf tx_buff;
@@ -143,9 +143,9 @@ static void wr_dat(uint8_t *data, uint8_t len)
 
 /**@brief Function to set LCD driver window.
  */
-static void window(uint16_t x, uint16_t y, uint16_t w, uint16_t h)
+static void window(u16_t x, u16_t y, u16_t w, u16_t h)
 {
-	uint8_t data[4];
+	u8_t data[4];
 
 	wr_cmd(0x2A);
 	data[0] = x >> 8;
@@ -193,7 +193,7 @@ static void gpio_init(void)
  */
 void ili9341_lcd_init(void)
 {
-	uint8_t spi_data[16];
+	u8_t spi_data[16];
 
 	gpio_init();
 
@@ -203,7 +203,8 @@ void ili9341_lcd_init(void)
 	}
 
 	spi_config.frequency = 8000000;
-	spi_config.operation = SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB | SPI_WORD_SET(8) | SPI_LINES_SINGLE;
+	spi_config.operation = SPI_OP_MODE_MASTER | SPI_TRANSFER_MSB |
+			SPI_WORD_SET(8) | SPI_LINES_SINGLE;
 	spi_config.slave = 0;		/* MOSI & CLK only; CS is not used. */
 	spi_config.cs = NULL;
 
@@ -213,13 +214,14 @@ void ili9341_lcd_init(void)
 	lcd_nreset_up();
 	wait_ms(5);
 
-	const uint8_t *p_init = Adafruit_ILI9341_initcmd;
+	const u8_t *p_init = Adafruit_ILI9341_initcmd;
 
 	while (*p_init != ILI9341_NOP) {
 		wr_cmd(*p_init++);
 
-		uint8_t data_parm = *p_init++;
-		uint8_t num_data = data_parm & 0x0F;
+		u8_t data_parm = *p_init++;
+		u8_t num_data = data_parm & 0x0F;
+
 		if (num_data > 0) {
 			memcpy(spi_data, p_init, num_data);
 			p_init += num_data;
@@ -239,41 +241,41 @@ void ili9341_lcd_init(void)
  */
 void ili9341_lcd_on(void)
 {
-	wr_cmd(0x29);               // display on
+	wr_cmd(0x29);               /* display on */
 	lcd_cs_up();
 
-	wait_ms(100);
+	wait_ms(120);
 }
 
 /**@brief Function to turn off LCD.
  */
 void ili9341_lcd_off(void)
 {
-	wr_cmd(0x28);               // display off
+	wr_cmd(0x28);               /* display off */
 	lcd_cs_up();
 }
 
-typedef struct {
-	uint8_t			*p_tx_data;
-	uint32_t		len;
+struct ili9341_tx_buffer {
+	u8_t			*p_tx_data;
+	u32_t			len;
 	struct spi_buf		tx_buff;
 	struct spi_buf_set	tx_bufs;
-} ili9341_tx_buffer_t;
+};
 
 /**@brief Function to put a graphics image on LCD.
  */
-void ili9341_lcd_put_gfx(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint8_t *p_lcd_data)
+void ili9341_lcd_put_gfx(u16_t x, u16_t y, u16_t w, u16_t h, const u8_t *p_lcd_data)
 {
-	// set display window
+	/* set display window */
 	window(x, y, w, h);
 
-	wr_cmd(0x2C);  // send pixel
+	wr_cmd(0x2C);  /* send pixel */
 
-	// LittlevGL is little-endian and ILI9341 is big-endian.
-	// Each 16-bit data takes a byte swap.
+	/* LittlevGL is little-endian and ILI9341 is big-endian. */
+	/* Each 16-bit data takes a byte swap. */
 
 #if defined(CONFIG_SPI_ASYNC) && CONFIG_SPI_ASYNC > 0
-	// Use SPI asynchronous call to utilize CPU during DMA transfer.
+	/* Use SPI asynchronous call to utilize CPU during DMA transfer. */
 	int err;
 	struct k_poll_signal async_sig = K_POLL_SIGNAL_INITIALIZER(async_sig);
 	struct k_poll_event async_evt =
@@ -281,30 +283,30 @@ void ili9341_lcd_put_gfx(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const u
 				 K_POLL_MODE_NOTIFY_ONLY,
 				 &async_sig);
 
-	uint32_t len = (uint32_t)w * 2 * h;
-	uint32_t n;
-	uint32_t i, l;
+	u32_t len = (uint32_t)w * 2 * h;
+	u32_t n;
+	u32_t i, l;
 
-	// Divide SPI TX data buffer into 2 parts.
-	// Start DMA transfer at a part and work on another part.
+	/* Divide SPI TX data buffer into 2 parts. */
+	/* Start DMA transfer at a part and work on another part. */
 
-	ili9341_tx_buffer_t tx_buffer[2], *p_tx_buffer;
+	struct ili9341_tx_buffer tx_buffer[2], *p_tx_buffer;
 
 	tx_buffer[0].len = ILI9341_LCD_WIDTH / 2 * 2;
 	tx_buffer[1].len = sizeof(m_tx_data) - tx_buffer[0].len;
 	tx_buffer[0].p_tx_data = m_tx_data;
 	tx_buffer[1].p_tx_data = m_tx_data + tx_buffer[0].len;
 
-	uint32_t tx_buff_i = 0;
+	u32_t tx_buff_i = 0;
 
 	for (n = 0; n < len; n += l) {
-		// get the data length to transfer
+		/* get the data length to transfer */
 		l = len - n;
 		p_tx_buffer = tx_buffer + tx_buff_i;
 		if (l > p_tx_buffer->len)
 			l = p_tx_buffer->len;
 
-		// copy data with swap
+		/* copy data with swap */
 		for (i = 0; i < l; i += 2) {
 			*(p_tx_buffer->p_tx_data + i + 0) = *(p_lcd_data + n + i + 1);
 			*(p_tx_buffer->p_tx_data + i + 1) = *(p_lcd_data + n + i + 0);
@@ -316,7 +318,7 @@ void ili9341_lcd_put_gfx(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const u
 		p_tx_buffer->tx_bufs.count = 1;
 
 		if (n > 0) {
-			// hold until previous SPI transfer is done before starting another.
+			/* hold until previous SPI transfer is done before starting another. */
 			err = k_poll(&async_evt, 1, K_FOREVER);
 			if (err) {
 				printk("SPI write error #%d!\n", err);
@@ -326,28 +328,28 @@ void ili9341_lcd_put_gfx(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const u
 		}
 		spi_write_async(spi_port, &spi_config, &p_tx_buffer->tx_bufs, &async_sig);
 
-		// swap TX buffer structure
+		/* swap TX buffer structure */
 		tx_buff_i ^= 0x1;
 	}
 
-	// wait until SPI transfer is done
+	/* wait until SPI transfer is done */
 	k_poll(&async_evt, 1, K_FOREVER);
 #else
-	// No SPI asynchronous call. A little slower.
+	/* No SPI asynchronous call. A little slower. */
 	struct spi_buf		tx_buff;
 	struct spi_buf_set	tx_bufs;
 
-	uint32_t len = (uint32_t)w * 2 * h;
-	uint32_t n;
-	uint32_t i, l;
+	u32_t len = (uint32_t)w * 2 * h;
+	u32_t n;
+	u32_t i, l;
 
 	for (n = 0; n < len; n += l) {
-		// get the data length to transfer
+		/* get the data length to transfer */
 		l = len - n;
 		if (l > sizeof(m_tx_data))
 			l = sizeof(m_tx_data);
 
-		// copy data with swap
+		/* copy data with swap */
 		for (i = 0; i < l; i += 2) {
 			m_tx_data[i + 0] = *(p_lcd_data + n + i + 1);
 			m_tx_data[i + 1] = *(p_lcd_data + n + i + 0);
