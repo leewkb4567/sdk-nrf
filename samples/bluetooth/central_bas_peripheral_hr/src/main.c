@@ -27,6 +27,8 @@
 
 #include <settings/settings.h>
 
+#include "app_hr.h"
+
 /**
  * Button to read the battery value
  */
@@ -165,6 +167,16 @@ static void gatt_discover(struct bt_conn *conn)
 static void connected(struct bt_conn *conn, uint8_t conn_err)
 {
 	int err;
+	struct bt_conn_info info;
+
+	err = bt_conn_get_info(conn, &info);
+	if (err) {
+		return;
+	} else if (info.role == BT_CONN_ROLE_SLAVE) {
+		bt_hr_connected(conn, conn_err);
+		return;
+	}
+
 	char addr[BT_ADDR_LE_STR_LEN];
 
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
@@ -200,6 +212,15 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
 	int err;
+	struct bt_conn_info info;
+
+	err = bt_conn_get_info(conn, &info);
+	if (err) {
+		return;
+	} else if (info.role == BT_CONN_ROLE_SLAVE) {
+		bt_hr_disconnected(conn, reason);
+		return;
+	}
 
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 
@@ -413,4 +434,8 @@ void main(void)
 	}
 
 	printk("Scanning successfully started\n");
+
+	bt_hr_start();
+
+	bt_hr_main_loop();
 }
