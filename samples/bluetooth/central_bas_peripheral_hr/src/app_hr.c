@@ -20,7 +20,11 @@
 #include <bluetooth/services/bas.h>
 #include <bluetooth/services/hrs.h>
 
-static struct bt_conn *default_conn;
+#include "app_hr.h"
+
+#define NUM_CONN_MAX    10
+
+static struct bt_conn *curr_conn[NUM_CONN_MAX];
 
 static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
@@ -30,23 +34,48 @@ static const struct bt_data ad[] = {
 		      BT_UUID_16_ENCODE(BT_UUID_DIS_VAL))
 };
 
+static struct bt_conn **find_curr_conn(struct bt_conn *conn)
+{
+	int i;
+	struct bt_conn **conn_found = NULL;
+
+	for (i = 0; i < NUM_CONN_MAX; i++) {
+		if (curr_conn[i] == conn) {
+			conn_found = curr_conn + i;
+			break;
+		}
+	}
+
+	return conn_found;
+}
+
 void bt_hr_connected(struct bt_conn *conn, uint8_t err)
 {
+	struct bt_conn **conn_room;
+
 	if (err) {
 		printk("Connection failed (err 0x%02x)\n", err);
 	} else {
-		default_conn = bt_conn_ref(conn);
-		printk("Connected\n");
+		conn_room = find_curr_conn(NULL);
+		if (conn_room) {
+			*conn_room = bt_conn_ref(conn);
+			printk("Connected\n");
+		} else {
+			printk("No room to trace connection!\n");
+		}
 	}
 }
 
 void bt_hr_disconnected(struct bt_conn *conn, uint8_t reason)
 {
+	struct bt_conn **conn_found;
+
 	printk("Disconnected (reason 0x%02x)\n", reason);
 
-	if (default_conn) {
-		bt_conn_unref(default_conn);
-		default_conn = NULL;
+	conn_found = find_curr_conn(conn);
+	if (conn_found) {
+		bt_conn_unref(*conn_found);
+		*conn_found = NULL;
 	}
 }
 

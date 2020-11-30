@@ -36,12 +36,59 @@
 
 #define BAS_READ_VALUE_INTERVAL (10 * MSEC_PER_SEC)
 
+#define NUM_CONN_MAX    10
 
-static struct bt_conn *default_conn;
-static struct bt_bas_client bas;
+
+static struct bt_conn *curr_conn[NUM_CONN_MAX];
+static struct bt_bas_client bas[NUM_CONN_MAX];
 
 static void notify_battery_level_cb(struct bt_bas_client *bas,
 				    uint8_t battery_level);
+
+static struct bt_conn **find_curr_conn(struct bt_conn *conn)
+{
+	int i;
+	struct bt_conn **conn_found = NULL;
+
+	for (i = 0; i < NUM_CONN_MAX; i++) {
+		if (curr_conn[i] == conn) {
+			conn_found = curr_conn + i;
+			break;
+		}
+	}
+
+	return conn_found;
+}
+
+static struct bt_bas_client *find_bas_client(struct bt_conn *conn)
+{
+	int i;
+	struct bt_bas_client *bas_mapped = NULL;
+
+	if (!conn) {
+		return NULL;
+	}
+
+	for (i = 0; i < NUM_CONN_MAX; i++) {
+		if (curr_conn[i] == conn) {
+			bas_mapped = bas + i;
+			break;
+		}
+	}
+
+	return bas_mapped;
+}
+
+static void scan_start(void)
+{
+	int err;
+
+	/* This demo doesn't require active scan */
+	err = bt_scan_start(BT_SCAN_TYPE_SCAN_ACTIVE);
+	if (err) {
+		printk("Scanning failed to start (err %d)\n", err);
+	}
+}
 
 static void scan_filter_match(struct bt_scan_device_info *device_info,
 			      struct bt_scan_filter_match *filter_match,
@@ -63,7 +110,12 @@ static void scan_connecting_error(struct bt_scan_device_info *device_info)
 static void scan_connecting(struct bt_scan_device_info *device_info,
 			    struct bt_conn *conn)
 {
-	default_conn = bt_conn_ref(conn);
+	struct bt_conn **conn_room;
+
+	conn_room = find_curr_conn(NULL);
+	if (conn_room) {
+		*conn_room = bt_conn_ref(conn);
+	}
 }
 
 static void scan_filter_no_match(struct bt_scan_device_info *device_info,
@@ -77,15 +129,26 @@ static void scan_filter_no_match(struct bt_scan_device_info *device_info,
 		bt_addr_le_to_str(device_info->recv_info->addr, addr,
 				  sizeof(addr));
 		printk("Direct advertising received from %s\n", addr);
-		bt_scan_stop();
 
-		err = bt_conn_le_create(device_info->recv_info->addr,
-					BT_CONN_LE_CREATE_CONN,
-					device_info->conn_param, &conn);
+		struct bt_conn **conn_room;
 
-		if (!err) {
-			default_conn = bt_conn_ref(conn);
-			bt_conn_unref(conn);
+		conn_room = find_curr_conn(NULL);
+		if (conn_room) {
+			bt_scan_stop();
+
+			err = bt_conn_le_create(device_info->recv_info->addr,
+						BT_CONN_LE_CREATE_CONN,
+						device_info->conn_param, &conn);
+
+			if (!err) {
+				*conn_room = bt_conn_ref(conn);
+				bt_conn_unref(conn);
+			}
+
+			conn_room = find_curr_conn(NULL);
+			if (conn_room) {
+
+			}
 		}
 	}
 }
@@ -102,13 +165,15 @@ static void discovery_completed_cb(struct bt_gatt_dm *dm,
 
 	bt_gatt_dm_data_print(dm);
 
-	err = bt_bas_handles_assign(dm, &bas);
+	struct bt_bas_client *bas = (struct bt_bas_client *)context;
+
+	err = bt_bas_handles_assign(dm, bas);
 	if (err) {
 		printk("Could not init BAS client object, error: %d\n", err);
 	}
 
-	if (bt_bas_notify_supported(&bas)) {
-		err = bt_bas_subscribe_battery_level(&bas,
+	if (bt_bas_notify_supported(bas)) {
+		err = bt_bas_subscribe_battery_level(bas,
 						     notify_battery_level_cb);
 		if (err) {
 			printk("Cannot subscribe to BAS value notification "
@@ -117,7 +182,7 @@ static void discovery_completed_cb(struct bt_gatt_dm *dm,
 		}
 	} else {
 		err = bt_bas_start_per_read_battery_level(
-			&bas, BAS_READ_VALUE_INTERVAL, notify_battery_level_cb);
+			bas, BAS_READ_VALUE_INTERVAL, notify_battery_level_cb);
 		if (err) {
 			printk("Could not start periodic read of BAS value\n");
 		}
@@ -152,12 +217,17 @@ static struct bt_gatt_dm_cb discovery_cb = {
 static void gatt_discover(struct bt_conn *conn)
 {
 	int err;
+	struct bt_conn **conn_found;
+	struct bt_bas_client *bas;
 
-	if (conn != default_conn) {
+	conn_found = find_curr_conn(conn);
+	if (!conn_found) {
 		return;
 	}
 
-	err = bt_gatt_dm_start(conn, BT_UUID_BAS, &discovery_cb, NULL);
+	bas = find_bas_client(conn);
+
+	err = bt_gatt_dm_start(conn, BT_UUID_BAS, &discovery_cb, bas);
 	if (err) {
 		printk("Could not start the discovery procedure, error "
 		       "code: %d\n", err);
@@ -168,6 +238,7 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 {
 	int err;
 	struct bt_conn_info info;
+	struct bt_conn **conn_room;
 
 	err = bt_conn_get_info(conn, &info);
 	if (err) {
@@ -183,16 +254,15 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 
 	if (conn_err) {
 		printk("Failed to connect to %s (%u)\n", addr, conn_err);
-		if (conn == default_conn) {
-			bt_conn_unref(default_conn);
-			default_conn = NULL;
 
-			/* This demo doesn't require active scan */
-			err = bt_scan_start(BT_SCAN_TYPE_SCAN_ACTIVE);
-			if (err) {
-				printk("Scanning failed to start (err %d)\n",
-				       err);
-			}
+		conn_room = find_curr_conn(conn);
+		if (conn_room) {
+			bt_conn_unref(*conn_room);
+			*conn_room = NULL;
+
+			scan_start();
+		} else {
+			printk("No room to trace connection!\n");
 		}
 
 		return;
@@ -205,6 +275,11 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 		printk("Failed to set security: %d\n", err);
 
 		gatt_discover(conn);
+	}
+
+	conn_room = find_curr_conn(NULL);
+	if (conn_room) {
+		scan_start();
 	}
 }
 
@@ -226,18 +301,15 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 
 	printk("Disconnected: %s (reason %u)\n", addr, reason);
 
-	if (default_conn != conn) {
-		return;
+	struct bt_conn **conn_found;
+
+	conn_found = find_curr_conn(conn);
+	if (conn_found) {
+		bt_conn_unref(*conn_found);
+		*conn_found = NULL;
 	}
 
-	bt_conn_unref(default_conn);
-	default_conn = NULL;
-
-	/* This demo doesn't require active scan */
-	err = bt_scan_start(BT_SCAN_TYPE_SCAN_ACTIVE);
-	if (err) {
-		printk("Scanning failed to start (err %d)\n", err);
-	}
+	scan_start();
 }
 
 static void security_changed(struct bt_conn *conn, bt_security_t level,
@@ -323,11 +395,17 @@ static void read_battery_level_cb(struct bt_bas_client *bas,
 static void button_readval(void)
 {
 	int err;
+	int i;
 
 	printk("Reading BAS value:\n");
-	err = bt_bas_read_battery_level(&bas, read_battery_level_cb);
-	if (err) {
-		printk("BAS read call error: %d\n", err);
+
+	for (i = 0; i < NUM_CONN_MAX; i++) {
+		if (curr_conn[i]) {
+			err = bt_bas_read_battery_level(bas + i, read_battery_level_cb);
+			if (err) {
+				printk("BAS read call error: %d\n", err);
+			}
+		}
 	}
 }
 
@@ -398,7 +476,11 @@ void main(void)
 
 	printk("Starting Bluetooth Central BAS example\n");
 
-	bt_bas_client_init(&bas);
+	int i;
+
+	for (i = 0; i < NUM_CONN_MAX; i++) {
+		bt_bas_client_init(bas + i);
+	}
 
 	err = bt_enable(NULL);
 	if (err) {
